@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, NaiveDate, NaiveTime};
 
 /// -> dd/mm/yyyy
 pub fn format_to_date_fr(date: NaiveDateTime) -> String {
@@ -23,6 +23,18 @@ pub fn format_teliway_datetime_to_iso(date: &str, hour: &str) -> (String, String
    let time = format!("{h}:{mm}:{s}");      
 
    (date, time)
+}
+
+pub fn iso_date_to_teliway_date(date: NaiveDate) -> String {
+   date.to_string().replace('-', "")
+}
+
+pub fn iso_time_to_teliway_hour(date: NaiveTime) -> String {
+   date.to_string()[..5].replace(':', "")
+}
+
+pub fn iso_time_to_hour(date: NaiveTime) -> String {
+    date.to_string()[..5].to_string()
 }
 
 #[cfg(test)]
