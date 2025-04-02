@@ -2,6 +2,10 @@
 Ensemble de fonction pour manipuler les dates
 
 # Versions
+## 0.4.0 02/04/25
+is_day_off en public
+constructeur Calendar avec saturday/sunday off
+
 ## 0.3.0 11/02/25
 format_to_date_fr générique pour accepter NaiveDate ou NaiveDateTime
 
