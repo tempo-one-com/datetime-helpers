@@ -2,6 +2,9 @@
 Ensemble de fonction pour manipuler les dates
 
 # Versions
+## 1.0.0 08/04/25
+ajout de méthode permettant d'utiliser jours exprimés en heure
+
 ## 0.4.0 02/04/25
 is_day_off en public
 constructeur Calendar avec saturday/sunday off

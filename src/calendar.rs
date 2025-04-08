@@ -1,6 +1,6 @@
 use std::num::TryFromIntError;
 
-use chrono::{Datelike, Duration, NaiveDate, Weekday};
+use chrono::{Datelike, Duration, NaiveDate, NaiveDateTime, Weekday};
 
 use crate::{Error, Result};
 
@@ -44,15 +44,6 @@ impl Calendar {
         is_holidays || saturday_off || sunday_off
     }
 
-    // fn is_working_day(
-    //    &self,
-    //    date: NaiveDate,
-    //    is_saturday_off: bool,
-    //    is_sunday_off: bool
-    // ) -> bool {
-    //    !self.is_day_off(date, is_saturday_off, is_sunday_off)
-    // }
-
     pub fn get_next_working_day(&self, date: NaiveDate, days_added: i32) -> Result<NaiveDate> {
         self.get_working_day_at_day(date, days_added, add_days)
     }
@@ -75,6 +66,30 @@ impl Calendar {
             Ok(other_date)
         }
     }
+
+    pub fn get_next_working_day_with_hours(&self, datetime: NaiveDateTime, hours_added: i32) -> Result<NaiveDateTime> {
+        self.get_working_day_at_hour(datetime, hours_added, add_hours)
+    }
+
+    pub fn get_previous_working_day_with_hours(&self, datetime: NaiveDateTime, hours_added: i32) -> Result<NaiveDateTime> {
+        self.get_working_day_at_hour(datetime, hours_added, minus_hours)
+    }
+
+    fn get_working_day_at_hour(
+        &self,
+        date: NaiveDateTime,
+        nb_hours: i32,
+        datetime_leaper: impl Fn(NaiveDateTime, i32) -> NaiveDateTime,
+    ) -> Result<NaiveDateTime> {
+        let other_date = datetime_leaper(date, nb_hours);
+
+        if self.is_day_off(other_date.date()) {
+            self.get_working_day_at_hour(other_date, 24, datetime_leaper)
+        } else {
+            Ok(other_date)
+        }
+    }
+
 }
 
 fn get_easter(year: i32) -> Result<NaiveDate> {
@@ -141,6 +156,15 @@ fn minus_days(date: NaiveDate, nb_days: i32) -> NaiveDate {
     date - Duration::days(nb_days.into())
 }
 
+fn add_hours(datetime: NaiveDateTime, nb_hours: i32) -> NaiveDateTime {
+    datetime + Duration::hours(nb_hours.into())
+}
+
+fn minus_hours(datetime: NaiveDateTime, nb_hours: i32) -> NaiveDateTime {
+    datetime - Duration::hours(nb_hours.into())
+}
+
+
 fn get_date(year: i32, month: u32, day: u32) -> Result<NaiveDate> {
     NaiveDate::from_ymd_opt(year, month, day)
         .ok_or(Error::CalendarError(format!("{year}-{month}-{day}")))
@@ -148,7 +172,7 @@ fn get_date(year: i32, month: u32, day: u32) -> Result<NaiveDate> {
 
 #[cfg(test)]
 mod tests {
-    use chrono::Month;
+    use chrono::{Month, NaiveTime};
 
     use super::*;
 
@@ -259,6 +283,34 @@ mod tests {
     }
 
     #[test]
+    fn jour_ouvre_apres_jour_ferie_hour() {
+        let cal = Calendar::new(2020).unwrap();
+        let date = new_date_time(2020, Month::July, 13, 14, 0, 0);
+        let next_working_day = new_date_time(2020, Month::July, 15, 14, 0, 0);
+                
+        assert_eq!(cal.get_next_working_day_with_hours(date, 24).unwrap(), next_working_day)
+    }
+
+
+    #[test]
+    fn jour_36h_avant_apres_midi() {
+        let cal = Calendar::new(2024).unwrap();
+        let date = new_date_time(2024, Month::November, 13, 17, 0, 0);
+        let next_working_day = new_date_time(2024, Month::November, 12, 5, 0, 0);
+                
+        assert_eq!(cal.get_previous_working_day_with_hours(date, 36).unwrap(), next_working_day)
+    }
+
+    #[test]
+    fn jour_36h_avant_matin() {
+        let cal = Calendar::new(2024).unwrap();
+        let date = new_date_time(2024, Month::November, 13, 8, 0, 0);
+        let next_working_day = new_date_time(2024, Month::November, 8, 20, 0, 0);
+                
+        assert_eq!(cal.get_previous_working_day_with_hours(date, 36).unwrap(), next_working_day)
+    }
+
+    #[test]
     fn jour_ouvre_annee_suivante() {
         let cal = Calendar::new(2018).unwrap();
         let day = NaiveDate::from_ymd_opt(2018, Month::December.number_from_month(), 31).unwrap();
@@ -266,6 +318,16 @@ mod tests {
             NaiveDate::from_ymd_opt(2019, Month::January.number_from_month(), 2).unwrap();
 
         assert_eq!(cal.get_next_working_day(day, 1).unwrap(), next_working_day)
+    }
+
+    #[test]
+    fn jour_ouvre_annee_suivante_() {
+        let cal = Calendar::new(2018).unwrap();
+        let date = new_date_time(2018, Month::December, 31, 10, 0, 0);
+        let next_working_day =
+            new_date_time(2019, Month::January, 2, 10, 0, 0);
+
+        assert_eq!(cal.get_next_working_day_with_hours(date, 24).unwrap(), next_working_day)
     }
 
     #[test]
@@ -322,5 +384,25 @@ mod tests {
             cal.get_previous_working_day(day, 2).unwrap(),
             next_working_day
         )
+    }
+
+    #[test]
+    fn passage_weekend() {
+        let cal = Calendar::new(2024).unwrap();
+        let day = NaiveDate::from_ymd_opt(2024, Month::November.number_from_month(), 6).unwrap();
+        let next_working_day =
+            NaiveDate::from_ymd_opt(2024, Month::October.number_from_month(), 31).unwrap();
+
+        assert_eq!(
+            cal.get_previous_working_day(day, 3).unwrap(),
+            next_working_day
+        )
+    }
+
+    fn new_date_time(year: i32, month: Month, day: u32, hour: u32, minute: u32, seconde: u32) -> NaiveDateTime {
+        let date = NaiveDate::from_ymd_opt(year, month.number_from_month(), day).unwrap();
+        let time = NaiveTime::from_hms_opt(hour, minute, seconde).unwrap();        
+
+        NaiveDateTime::new(date, time)
     }
 }
