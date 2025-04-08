@@ -2,6 +2,9 @@
 Ensemble de fonction pour manipuler les dates
 
 # Versions
+## 1.0.1 05/04/25
+Debug sur Calendar
+
 ## 1.0.0 08/04/25
 ajout de méthode permettant d'utiliser jours exprimés en heure
 
