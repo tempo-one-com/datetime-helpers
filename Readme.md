@@ -2,6 +2,9 @@
 Ensemble de fonction pour manipuler les dates
 
 # Versions
+## 1.0.2 05/04/25
+Upgrade chrono (0.4.42)
+
 ## 1.0.1 05/04/25
 Debug sur Calendar
 
